@@ -89,12 +89,12 @@ namespace DocvTools
                             pageNumber = (int)(signer.GetDocument().GetNumberOfPages() + sp.Apperance.PageNum + 1);
                         }
                     }
-                    else if (sp.Marker != null && sp.Marker.Text != null)
+                    else if (sp.Apperance.Marker != null && sp.Apperance.Marker.Text != null)
                     {
-                        (rect, pageNumber) = ExtractLocation(signer.GetDocument(), sp.Marker.Text, sp.Marker.ReverseSearch);
+                        (rect, pageNumber) = ExtractLocation(signer.GetDocument(), sp.Apperance.Marker.Text, sp.Apperance.Marker.ReverseSearch);
                         if (rect != null) {
-                            rect.SetX(rect.GetX() + sp.Marker.Offset.X);
-                            rect.SetY(rect.GetY() + sp.Marker.Offset.Y);
+                            rect.SetX(rect.GetX() + sp.Apperance.Marker.Offset.X);
+                            rect.SetY(rect.GetY() + sp.Apperance.Marker.Offset.Y);
                         }
                     }
 

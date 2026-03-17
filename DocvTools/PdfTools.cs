@@ -136,11 +136,9 @@ namespace DocvTools
 
                 SignedPdf = outputStream.ToArray();
             } ;
-            
 
             $"Документ успешно подписан на ключе {certificate.Subject}".Info();
 
-            
             return 0;
         }
 
@@ -156,8 +154,6 @@ namespace DocvTools
 
             $"Count stamps: {st.Count}".Debug();
             foreach (var stp in st) {
-                //if (stp.FontName == null) stp.FontParametrs = new FontParametrs();
-
                 PdfFont font = PdfFontFactory.CreateFont(stp.FontName);
 
                 int pageNumber = 0;

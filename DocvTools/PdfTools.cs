@@ -77,7 +77,7 @@ namespace DocvTools
                 {
                     Rectangle? rect = null;
                     int pageNumber = 0;
-                    if (sp.Apperance.Area != null && sp.Apperance.PageNum != 0 && sp.Apperance.PageNum <= signer.GetDocument().GetNumberOfPages())
+                    if (sp.Apperance.Area != null && sp.Apperance.PageNum != 0 && Math.Abs(sp.Apperance.PageNum) <= signer.GetDocument().GetNumberOfPages())
                     {
                         rect = new(sp.Apperance.Area.X, sp.Apperance.Area.Y, sp.Apperance.Area.W, sp.Apperance.Area.H);
                         if (sp.Apperance.PageNum > 0)
@@ -163,7 +163,7 @@ namespace DocvTools
                 int pageNumber = 0;
                 Rectangle? stampRect = null;
 
-                if (stp.Area != null && stp.PageNum != null && stp.PageNum != 0 && stp.PageNum <= pdfDoc.GetNumberOfPages()) { //проверяем наличие абсолютного положения
+                if (stp.Area != null && stp.PageNum != 0 && Math.Abs(stp.PageNum) <= pdfDoc.GetNumberOfPages()) { //проверяем наличие абсолютного положения
                     $"Stamp: {stp.Text}".Debug();
                     stampRect = new(stp.Area.X, stp.Area.Y, stp.Area.W, stp.Area.H);
 
@@ -212,9 +212,6 @@ namespace DocvTools
 
         private static (Rectangle? rect, int page) ExtractLocation(PdfDocument pdfDoc, string searchedString, bool reverseSearch = false)
         {
-            //Создаем новый объект PdfDocument
-            //using var pdfDoc = new PdfDocument(new PdfReader(new MemoryStream(pdfArray)));
-
             int startPage = 1;
             int numPage = 0;
 

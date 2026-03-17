@@ -12,14 +12,12 @@ namespace DocvTools
 
     class Program
     {
-        //Logger.RegisterLogger(new ConsoleLogger());
         static void Main(string[] args)
         {
             var url = "http://localhost:9696/";
             if (args.Length > 0)
                 url = args[0];
 
-            // Our web server is disposable.
             using (var server = CreateWebServer(url))
             {
                 server.RunAsync();
@@ -53,7 +51,6 @@ namespace DocvTools
             var data = await HttpContext.GetRequestDataAsync<Request>();
 
             if (data.Documents != null) {
-                //data.Documents.First().ToBase64String(File.ReadAllBytes(@"D:\Documents\test_doc.pdf")); //Закомментировать (использовалось для теста)
                 if (data.Stamps != null)
                 {
                     for (int i = 0; i < data.Documents.Count; i++)
@@ -67,7 +64,6 @@ namespace DocvTools
                 }
 
                 if (data.SignatureParametrs != null) {
-                    
 
                     for (int i = 0; i < data.Documents.Count; i++)
                     {
@@ -75,7 +71,6 @@ namespace DocvTools
                         {
                             byte[] signedDoc = PdfTools.SignedPdf;
                             data.Documents[i].ToBase64String(signedDoc);
-                            //File.WriteAllBytes(@"D:\Documents\test_doc_signed.pdf", signedDoc);         //Закомментировать (использовалось для теста)
                         }
                     }
                 }

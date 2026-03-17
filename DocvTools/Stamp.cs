@@ -9,6 +9,7 @@ namespace DocvTools
         public Stamp() {
             FontName  = "Times-Roman";
             FontSize = 12;
+            PageNum = 0;
         }
         public required string Text { get; set; }
         public string FontName { get; set; }
@@ -16,7 +17,7 @@ namespace DocvTools
         
         public Marker? Marker { get; set; }
         public Area? Area { get; set; }
-        public int? PageNum { get; set; }
+        public int PageNum { get; set; }
     }
 
     public class Area 

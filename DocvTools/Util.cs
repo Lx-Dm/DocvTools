@@ -1,10 +1,5 @@
-﻿using iText.Commons.Datastructures;
-using iText.IO.Font;
-using iText.IO.Image;
+﻿using iText.IO.Image;
 using iText.Kernel.Geom;
-using iText.Layout;
-using iText.Layout.Element;
-using iText.Layout.Properties;
 using SkiaSharp;
 using Swan.Logging;
 

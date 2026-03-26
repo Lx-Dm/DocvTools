@@ -1,14 +1,19 @@
 ﻿using CryptoPro.Security.Cryptography;
 using CryptoPro.Security.Cryptography.X509Certificates;
 using iText.Forms.Form.Element;
+using iText.IO.Font;
+using iText.IO.Font.Constants;
 using iText.IO.Image;
 using iText.Kernel.Colors;
 using iText.Kernel.Font;
 using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas.Parser;
+using iText.Kernel.Pdf.Xobject;
 using iText.Layout;
+using iText.Layout.Borders;
 using iText.Layout.Element;
+using iText.Layout.Properties;
 using iText.Signatures;
 using Swan.Logging;
 using System.Security;
@@ -18,13 +23,10 @@ namespace DocvTools
 {
     public class PdfTools
     {
-        public static byte[]? SignedPdf { get; set; }
+        public byte[]? SignedPdf { get; set; }
 
-        public static int Sign(byte[] doc, SignatureParameters sp)
+        public int Sign(byte[] doc, SignatureParameters sp)
         {
-            //Очищаем массив с подписанным pdf
-            SignedPdf = null;
-
             //Проверяем сигнатуру файла на соответствие PDF
             if (!Util.IsByteArrayPdf(doc)) {
                 "Файл не является PDF".Info();
@@ -52,7 +54,7 @@ namespace DocvTools
             CpX509Certificate2 certificate = found.First();
 
             //Задаем пароль для секретного ключа
-            if (sp.Password != null)
+            if (sp.Password != null && sp.Password != "")
             {
                 SecureString secureString = new();
                 foreach (char walk in sp.Password)
@@ -100,25 +102,29 @@ namespace DocvTools
 
                     if (rect != null && pageNumber > 0)
                     {
-                        string text = string.Format(sp.Apperance.Template,
-                                certificate.GetSerialNumberString(),
-                                certificate.GetNameInfo(X509NameType.SimpleName, false),
-                                certificate.NotBefore.ToShortDateString(),
-                                certificate.NotAfter.ToShortDateString());
-
-                        ImageData img = sp.Apperance.AddCertInfo ? 
-                            Util.GenerateSignatureImage(sp.Apperance.ImgPath, text, sp.Apperance.FontName, sp.Apperance.FontSize, sp.Apperance.Offset) :
-                            Util.GenerateSignatureImage(sp.Apperance.ImgPath);
-
-                        Util.CalculateRect(rect, img.GetWidth() / img.GetHeight(), sp.Apperance.Ratio);
-
                         $"Серийный номер {certificate.GetSerialNumberString()} Владелец {certificate.GetNameInfo(X509NameType.SimpleName, false)} Действителен с {certificate.NotBefore.ToShortDateString()} по {certificate.NotAfter.ToShortDateString()}".Info();
 
-                        signer.GetSignerProperties()
-                                    .SetPageRect(rect)
-                                    .SetPageNumber(pageNumber);
+                        if (sp.Apperance.Layout != null && sp.Apperance.Layout.Elements != null) {
+                            CheckPatternText(sp.Apperance.Layout.Elements,
+                                        certificate.GetSerialNumberString(),
+                                        certificate.GetNameInfo(X509NameType.SimpleName, false),
+                                        certificate.NotBefore.ToShortDateString(),
+                                        certificate.NotAfter.ToShortDateString());
 
-                        appearance.SetContent(img);
+                            Image finalImage = GenerateVisualSignature(new Rectangle(sp.Apperance.Layout.Width, sp.Apperance.Layout.Height),
+                                                                       signer.GetDocument(),
+                                                                       sp.Apperance.Layout);
+
+                            CalculateRect(rect, (sp.Apperance.Layout.Width + sp.Apperance.Layout.Height * 0.15f) / (sp.Apperance.Layout.Height + sp.Apperance.Layout.Height * 0.15f), sp.Apperance.Scale);
+
+
+                            signer.GetSignerProperties()
+                                        .SetPageRect(rect)
+                                        .SetPageNumber(pageNumber);
+
+                            appearance.SetContent(PrepareContainer(finalImage));
+                        }
+                        
                     }
                 }
 
@@ -142,7 +148,7 @@ namespace DocvTools
             return 0;
         }
 
-        public static int Stamp(byte[] doc, List<Stamp> st) {
+        public int Stamp(byte[] doc, List<Stamp> st) {
 
             using MemoryStream stream = new(doc);
             using MemoryStream outputStream = new();
@@ -154,7 +160,7 @@ namespace DocvTools
 
             $"Count stamps: {st.Count}".Debug();
             foreach (var stp in st) {
-                PdfFont font = PdfFontFactory.CreateFont(stp.FontName);
+                PdfFont font = CreateFont(stp.FontName);//PdfFontFactory.CreateFont(stp.FontName);
 
                 int pageNumber = 0;
                 Rectangle? stampRect = null;
@@ -231,6 +237,95 @@ namespace DocvTools
             }
 
             return (strategy.Rect, numPage);
+        }
+
+        private static Image GenerateVisualSignature(Rectangle rect, PdfDocument doc, Layout layout) {
+
+            PdfFormXObject xObject = new(rect);
+
+            using (Canvas canvas = new(xObject, doc))
+            {
+                foreach (var le in layout.Elements)
+                {
+                    if (le.Type == "text")
+                    {
+                        Paragraph ph = new Paragraph(le.Text)
+                                    .SetFixedPosition(le.FixedPositionLeft, le.FixedPositionBottom, UnitValue.CreatePointValue(le.Width))
+                                    .SetFont(CreateFont(le.FontFamily))
+                                    .SetFontSize(le.FontSize)
+                                    .SetBorderRadius(new BorderRadius(5))
+                                    .SetBackgroundColor(new DeviceRgb(le.BackgroundColor[0], le.BackgroundColor[1], le.BackgroundColor[2]))
+                                    .SetBorder(new SolidBorder(ColorConstants.WHITE, 0.2f))
+                                    .SetFontColor(new DeviceRgb(le.FontColor[0], le.FontColor[1], le.FontColor[2]))
+                                    .SetTextAlignment((TextAlignment)le.HorizontalAlignment);
+
+                        canvas.Add(ph);
+                    }
+                    else if (le.Type == "image")
+                    {
+                        ImageData imgData = ImageDataFactory.Create(Util.Base64ToByteArray(le.Text));
+                        Image image = new Image(imgData)
+                                        .SetFixedPosition(le.FixedPositionLeft, le.FixedPositionBottom, UnitValue.CreatePointValue(le.Width))
+                                        .SetAutoScale(false)
+                                        .SetBorder(new SolidBorder(ColorConstants.WHITE, 0.2f))
+                                        .SetFontColor(ColorConstants.BLACK)
+                                        .SetHorizontalAlignment(HorizontalAlignment.CENTER);
+                        canvas.Add(image);
+                    }
+                }
+                canvas.Close();
+            }
+
+            // Превращаем XObject в Div через Image (чтобы SetContent принял его)
+            Image finalImage = new Image(xObject)
+                                    .SetBorder(new SolidBorder(new DeviceRgb(layout.BorderColor[0], layout.BorderColor[1], layout.BorderColor[2]), layout.Border))
+                                    .SetBorderRadius(new BorderRadius(layout.BorderRadius))
+                                    .SetAutoScale(true)
+                                    .SetHorizontalAlignment(HorizontalAlignment.CENTER);
+            return finalImage;
+        }
+
+        private static Div PrepareContainer(Image finalImage) {
+            Div wrapper = new Div()
+                            .SetMargin(0)
+                            .SetPadding(0)
+                            .SetWidth(UnitValue.CreatePercentValue(100))
+                            .SetHorizontalAlignment(HorizontalAlignment.CENTER)
+                            .SetVerticalAlignment(VerticalAlignment.MIDDLE);
+
+            wrapper.Add(finalImage);
+            return wrapper;
+        }
+
+        private static void CheckPatternText(List<LayoutElement> elements, string sn, string owner, string dateFrom, string dateBy) {
+            foreach (var le in elements)
+            {
+                if (le.Text.Contains("{SN}")) le.Text = le.Text.Replace("{SN}", sn);
+                if (le.Text.Contains("{OWNER}")) le.Text = le.Text.Replace("{OWNER}", owner);
+                if (le.Text.Contains("{DATEFROM}")) le.Text = le.Text.Replace("{DATEFROM}", dateFrom);
+                if (le.Text.Contains("{DATEBY}")) le.Text = le.Text.Replace("{DATEBY}", dateBy);
+            }
+        }
+
+        private static void CalculateRect(Rectangle sourceRect, float imgRatio, float scale)
+        {
+            float centerX = sourceRect.GetX() + sourceRect.GetWidth() / 2f;
+            float centerY = sourceRect.GetY() + sourceRect.GetHeight() / 2f;
+
+            sourceRect.SetWidth(sourceRect.GetWidth() * scale)
+                      .SetX(centerX - sourceRect.GetWidth() / 2f)
+                      .SetHeight(sourceRect.GetWidth() / imgRatio)
+                      .SetY(centerY - sourceRect.GetHeight() / 2f);
+        }
+        
+        private static PdfFont CreateFont(string familyName)
+        {
+            if (PdfFontFactory.IsRegistered(familyName))
+            {
+                return PdfFontFactory.CreateRegisteredFont(familyName);
+            }
+
+            return PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
         }
     }
 }

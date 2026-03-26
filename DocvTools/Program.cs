@@ -1,15 +1,11 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using EmbedIO;
+using EmbedIO.Routing;
+using EmbedIO.WebApi;
+using iText.IO.Font;
+using Swan.Logging;
 
 namespace DocvTools
 {
-
-    using EmbedIO;
-    using EmbedIO.Routing;
-    using EmbedIO.WebApi;
-
-    using Swan.Logging;
-    using System;
-
     class Program
     {
         static void Main(string[] args)
@@ -17,6 +13,8 @@ namespace DocvTools
             var url = "http://localhost:9696/";
             if (args.Length > 0)
                 url = args[0];
+
+            FontProgramFactory.RegisterSystemFontDirectories();
 
             using (var server = CreateWebServer(url))
             {
@@ -55,10 +53,15 @@ namespace DocvTools
                 {
                     for (int i = 0; i < data.Documents.Count; i++)
                     {
-                        if (PdfTools.Stamp(data.Documents[i].ByteArray(), data.Stamps) == 0 && PdfTools.SignedPdf != null)
+                        byte[] doc = Util.Base64ToByteArray(data.Documents[i].base64);
+                        if (doc.Length > 0)
                         {
-                            byte[] signedDoc = PdfTools.SignedPdf;
-                            data.Documents[i].ToBase64String(signedDoc);
+                            PdfTools pt = new PdfTools();
+                            if (pt.Stamp(doc, data.Stamps) == 0 && pt.SignedPdf != null)
+                            {
+                                byte[] signedDoc = pt.SignedPdf;
+                                data.Documents[i].base64 = Util.ByteArrayToBase64(signedDoc);
+                            }
                         }
                     }
                 }
@@ -67,10 +70,15 @@ namespace DocvTools
 
                     for (int i = 0; i < data.Documents.Count; i++)
                     {
-                        if (PdfTools.Sign(data.Documents[i].ByteArray(), data.SignatureParametrs) == 0 && PdfTools.SignedPdf != null)
+                        byte[] doc = Util.Base64ToByteArray(data.Documents[i].base64);
+                        if (doc.Length > 0)
                         {
-                            byte[] signedDoc = PdfTools.SignedPdf;
-                            data.Documents[i].ToBase64String(signedDoc);
+                            PdfTools pt = new PdfTools();
+                            if (pt.Sign(doc, data.SignatureParametrs) == 0 && pt.SignedPdf != null)
+                            {
+                                byte[] signedDoc = pt.SignedPdf;
+                                data.Documents[i].base64 = Util.ByteArrayToBase64(signedDoc);
+                            }
                         }
                     }
                 }

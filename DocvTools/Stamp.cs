@@ -1,8 +1,4 @@
-﻿using iText.IO.Font;
-using Org.BouncyCastle.Bcpg;
-using System.Drawing;
-
-namespace DocvTools
+﻿namespace DocvTools
 {
     public class Stamp
     {

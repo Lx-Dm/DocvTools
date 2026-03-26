@@ -1,7 +1,6 @@
 ﻿using CryptoPro.Security.Cryptography;
 using CryptoPro.Security.Cryptography.X509Certificates;
 using iText.Forms.Form.Element;
-using iText.IO.Font;
 using iText.IO.Font.Constants;
 using iText.IO.Image;
 using iText.Kernel.Colors;

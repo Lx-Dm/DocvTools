@@ -1,7 +1,4 @@
-﻿using iText.IO.Font.Constants;
-using System.Drawing;
-
-namespace DocvTools
+﻿namespace DocvTools
 {
     public class SignatureParameters
     {

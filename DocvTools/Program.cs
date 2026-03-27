@@ -8,18 +8,32 @@ namespace DocvTools
 {
     class Program
     {
+        private static readonly Mutex mutex = new(true, "bc97e66a-d51c-4dd1-8ede-0eca63a969b7");
+        [STAThread]
         static void Main(string[] args)
         {
-            var url = "http://localhost:9696/";
-            if (args.Length > 0)
-                url = args[0];
-
-            FontProgramFactory.RegisterSystemFontDirectories();
-
-            using (var server = CreateWebServer(url))
+            if (!Directory.Exists("logs"))
             {
-                server.RunAsync();
-                Console.ReadKey(true);
+                Directory.CreateDirectory("logs");
+            }
+
+            var logPath = "logs/application.log";
+            Logger.RegisterLogger(new FileLogger(logPath, true));
+
+            if (mutex.WaitOne(TimeSpan.Zero, true))
+            {
+                var url = "http://localhost:9696/";
+                if (args.Length > 0)
+                    url = args[0];
+
+                FontProgramFactory.RegisterSystemFontDirectories();
+
+                using (var server = CreateWebServer(url))
+                {
+                    server.RunAsync();
+                    Console.ReadKey(true);
+                }
+                mutex.ReleaseMutex(); // Освобождаем при закрытии
             }
         }
 
@@ -59,6 +73,7 @@ namespace DocvTools
                             PdfTools pt = new PdfTools();
                             if (pt.Stamp(doc, data.Stamps) == 0 && pt.SignedPdf != null)
                             {
+                                $"STAMP: {data.Documents[i].name}".Info();
                                 byte[] signedDoc = pt.SignedPdf;
                                 data.Documents[i].base64 = Util.ByteArrayToBase64(signedDoc);
                             }
@@ -76,6 +91,7 @@ namespace DocvTools
                             PdfTools pt = new PdfTools();
                             if (pt.Sign(doc, data.SignatureParametrs) == 0 && pt.SignedPdf != null)
                             {
+                                $"SIGN: {data.Documents[i].name}".Info();
                                 byte[] signedDoc = pt.SignedPdf;
                                 data.Documents[i].base64 = Util.ByteArrayToBase64(signedDoc);
                             }

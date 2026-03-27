@@ -163,22 +163,21 @@ namespace DocvTools
             foreach (var stp in st)
             {
                 if (stp.Marker != null && stp.Marker.Text != null)
-                {    //проверяем наличие маркера относительного положения
-                    
+                {                    
                     //пробуем получить координаты маркера и номер страницы
-                    (Rectangle? rect, int page) info= ExtractLocation(pdfDoc, stp.Marker.Text, stp.Marker.ReverseSearch);
+                    (Rectangle? area, int page) = ExtractLocation(pdfDoc, stp.Marker.Text, stp.Marker.ReverseSearch);
 
                     //проверяем координаты маркера и номер страницы
-                    if (info.rect != null)
+                    if (area != null)
                     {
                         PdfFont font = CreateFont(stp.FontName);
-                        info.rect.SetWidth(font.GetWidth(stp.Text, stp.FontSize));
+                        area.SetWidth(font.GetWidth(stp.Text, stp.FontSize));
 
-                        if (stp.Marker.Offset != null) info.rect.SetX(info.rect.GetX() + stp.Marker.Offset.X)
-                                .SetY(info.rect.GetY() + stp.Marker.Offset.Y);
+                        if (stp.Marker.Offset != null) area.SetX(area.GetX() + stp.Marker.Offset.X)
+                                .SetY(area.GetY() + stp.Marker.Offset.Y);
 
-                        stp.Area = new Area(info.rect.GetX(), info.rect.GetY(), info.rect.GetWidth(), info.rect.GetHeight());
-                        stp.PageNum = info.page;
+                        stp.Area = new Area(area.GetX(), area.GetY(), area.GetWidth(), area.GetHeight());
+                        stp.PageNum = page;
                     }
                 }
             }

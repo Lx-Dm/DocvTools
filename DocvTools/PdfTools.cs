@@ -158,40 +158,56 @@ namespace DocvTools
             PdfDocument pdfDoc = new(reader, writer);
 
             $"Count stamps: {st.Count}".Debug();
-            foreach (var stp in st) {
+
+            //Ищем маркеры и преобразуем в абсолютные координаты
+            foreach (var stp in st)
+            {
+                if (stp.Marker != null && stp.Marker.Text != null)
+                {    //проверяем наличие маркера относительного положения
+                    
+                    //пробуем получить координаты маркера и номер страницы
+                    (Rectangle? rect, int page) info= ExtractLocation(pdfDoc, stp.Marker.Text, stp.Marker.ReverseSearch);
+
+                    //проверяем координаты маркера и номер страницы
+                    if (info.rect != null)
+                    {
+                        PdfFont font = CreateFont(stp.FontName);
+                        info.rect.SetWidth(font.GetWidth(stp.Text, stp.FontSize));
+
+                        if (stp.Marker.Offset != null) info.rect.SetX(info.rect.GetX() + stp.Marker.Offset.X)
+                                .SetY(info.rect.GetY() + stp.Marker.Offset.Y);
+
+                        stp.Area = new Area(info.rect.GetX(), info.rect.GetY(), info.rect.GetWidth(), info.rect.GetHeight());
+                        stp.PageNum = info.page;
+                    }
+                }
+            }
+
+            foreach (var stp in st)
+            {
                 PdfFont font = CreateFont(stp.FontName);//PdfFontFactory.CreateFont(stp.FontName);
 
                 int pageNumber = 0;
                 Rectangle? stampRect = null;
 
-                if (stp.Area != null && stp.PageNum != 0 && Math.Abs(stp.PageNum) <= pdfDoc.GetNumberOfPages()) { //проверяем наличие абсолютного положения
+                //проверяем наличие абсолютного положения
+                if (stp.Area != null && stp.PageNum != 0 && Math.Abs(stp.PageNum) <= pdfDoc.GetNumberOfPages())
+                {
                     $"Stamp: {stp.Text}".Debug();
                     stampRect = new(stp.Area.X, stp.Area.Y, stp.Area.W, stp.Area.H);
 
                     if (stp.PageNum > 0)
                     {
                         pageNumber = (int)stp.PageNum;
-                    } else if (stp.PageNum < 0)
+                    }
+                    else if (stp.PageNum < 0)
                     {
                         pageNumber = (int)(pdfDoc.GetNumberOfPages() + stp.PageNum + 1);
                     }
-
-                } else if (stp.Marker != null && stp.Marker.Text != null) {    //проверяем наличие маркера относительного положения
-
-                    //пробуем получить координаты маркера и номер страницы
-                    (stampRect, pageNumber) = ExtractLocation(pdfDoc, stp.Marker.Text, stp.Marker.ReverseSearch); 
-
-                    //проверяем координаты маркера и номер страницы
-                    if (stampRect != null) 
-                    {
-                        stampRect.SetWidth(font.GetWidth(stp.Text, stp.FontSize));
-
-                        if (stp.Marker.Offset != null) stampRect.SetX(stampRect.GetX() + stp.Marker.Offset.X)
-                                .SetY(stampRect.GetY() + stp.Marker.Offset.Y);
-                    }
                 }
 
-                if (stampRect != null && pageNumber > 0) {
+                if (stampRect != null && pageNumber > 0)
+                {
                     PdfPage pageDoc = pdfDoc.GetPage(pageNumber);
 
                     Paragraph paragraph = new Paragraph(stp.Text)
@@ -207,6 +223,7 @@ namespace DocvTools
             }
 
             pdfDoc.Close();
+
             SignedPdf = outputStream.ToArray();
             return 0;
         }

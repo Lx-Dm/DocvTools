@@ -18,10 +18,17 @@
 
     public class Area 
     {
-        public required int X { get; set; }
-        public required int Y { get; set; }
-        public required int H { get; set; }
-        public required int W { get; set; }
+        public Area(float x, float y, float width, float height)
+        { 
+            X = x;
+            Y = y;
+            W = width;
+            H = height;
+        }
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float H { get; set; }
+        public float W { get; set; }
     }
     public class Offset
     {

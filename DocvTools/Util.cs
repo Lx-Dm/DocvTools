@@ -15,6 +15,19 @@
             }
         }
 
+        public static byte[] StreamToByteArray(Stream sourceStream)
+        {
+            // If the source is already a MemoryStream, we can potentially use ToArray directly for efficiency, 
+            // but CopyTo is more general for all stream types.
+            using (MemoryStream memoryStream = new())
+            {
+                // Use CopyTo to transfer data from the source stream to the MemoryStream
+                sourceStream.CopyTo(memoryStream);
+                // Return the byte array from the MemoryStream
+                return memoryStream.ToArray();
+            }
+        }
+
         public static string ByteArrayToBase64(byte[] bytes)
         {
             return Convert.ToBase64String(bytes);

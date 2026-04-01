@@ -3,6 +3,7 @@ using CryptoPro.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Pkcs;
 using iText.Kernel.Pdf;
 using iText.Signatures;
+using DocvTools;
 
 internal class SignatureContainer : IExternalSignatureContainer
 {
@@ -15,7 +16,7 @@ internal class SignatureContainer : IExternalSignatureContainer
 
     public virtual byte[] Sign(Stream docStream)
     {
-        byte[] docBytes = StreamToByteArray(docStream);
+        byte[] docBytes = Util.StreamToByteArray(docStream);
         // Вычисляем подпись
         ContentInfo contentInfo = new(docBytes);
         CpSignedCms signedCms = new(contentInfo, true);
@@ -30,18 +31,5 @@ internal class SignatureContainer : IExternalSignatureContainer
     {
         signDic.Put(PdfName.Filter, new PdfName("CryptoPro PDF"));
         signDic.Put(PdfName.SubFilter, PdfName.Adbe_pkcs7_detached);
-    }
-
-    private static byte[] StreamToByteArray(Stream sourceStream)
-    {
-        // If the source is already a MemoryStream, we can potentially use ToArray directly for efficiency, 
-        // but CopyTo is more general for all stream types.
-        using (MemoryStream memoryStream = new())
-        {
-            // Use CopyTo to transfer data from the source stream to the MemoryStream
-            sourceStream.CopyTo(memoryStream);
-            // Return the byte array from the MemoryStream
-            return memoryStream.ToArray();
-        }
     }
 }

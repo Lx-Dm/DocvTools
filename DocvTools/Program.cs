@@ -57,7 +57,6 @@ namespace DocvTools
     public class SignController : WebApiController
     {
         [Route(HttpVerbs.Post, "/pdf")]
-
         public async Task<List<Document>> Sign()
         {
             var data = await HttpContext.GetRequestDataAsync<Request>();
@@ -81,7 +80,7 @@ namespace DocvTools
                     }
                 }
 
-                if (data.SignatureParametrs != null) {
+                if (data.SignatureParameters != null) {
 
                     for (int i = 0; i < data.Documents.Count; i++)
                     {
@@ -89,7 +88,7 @@ namespace DocvTools
                         if (doc.Length > 0)
                         {
                             PdfTools pt = new PdfTools();
-                            if (pt.Sign(doc, data.SignatureParametrs) == 0 && pt.SignedPdf != null)
+                            if (pt.Sign(doc, data.SignatureParameters) == 0 && pt.SignedPdf != null)
                             {
                                 $"SIGN: {data.Documents[i].name}".Info();
                                 byte[] signedDoc = pt.SignedPdf;

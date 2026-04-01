@@ -20,11 +20,9 @@
             Scale = 1.0f;
             Visible = false;
             PageNum = 0;
-            Offset = new();
         }
         public bool Visible { get; set; }
         public float Scale { get; set; }
-        public Offset Offset { get; set; }
         public Marker? Marker { get; set; }
         public Area? Area { get; set; }
         public int PageNum { get; set; }
@@ -45,7 +43,7 @@
     }
     public class LayoutElement {
         public LayoutElement() {
-            Type = "text";
+            Type = "";
             Text = "";
             FontFamily = "Times New Roman";
             BackgroundColor = [255, 255, 255];

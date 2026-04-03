@@ -1,13 +1,9 @@
-﻿using iText.IO.Font;
-using Org.BouncyCastle.Bcpg;
-using System.Drawing;
-
-namespace DocvTools
+﻿namespace DocvTools
 {
-    public class Stamp
+    internal class Stamp
     {
         public Stamp() {
-            FontName  = "Times-Roman";
+            FontName  = "Times New Roman";
             FontSize = 12;
             PageNum = 0;
         }
@@ -20,14 +16,21 @@ namespace DocvTools
         public int PageNum { get; set; }
     }
 
-    public class Area 
+    internal class Area 
     {
-        public required int X { get; set; }
-        public required int Y { get; set; }
-        public required int H { get; set; }
-        public required int W { get; set; }
+        public Area(float x, float y, float width, float height)
+        { 
+            X = x;
+            Y = y;
+            W = width;
+            H = height;
+        }
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float H { get; set; }
+        public float W { get; set; }
     }
-    public class Offset
+    internal class Offset
     {
         public Offset()
         {
@@ -39,7 +42,7 @@ namespace DocvTools
         public int Y { get; set; }
     }
 
-    public class Marker
+    internal class Marker
     {
         public Marker()
         {

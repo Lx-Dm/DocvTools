@@ -1,27 +1,39 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using EmbedIO;
+using EmbedIO.Routing;
+using EmbedIO.WebApi;
+using iText.IO.Font;
+using Swan.Logging;
 
 namespace DocvTools
 {
-
-    using EmbedIO;
-    using EmbedIO.Routing;
-    using EmbedIO.WebApi;
-
-    using Swan.Logging;
-    using System;
-
     class Program
     {
+        private static readonly Mutex mutex = new(true, "bc97e66a-d51c-4dd1-8ede-0eca63a969b7");
+        [STAThread]
         static void Main(string[] args)
         {
-            var url = "http://localhost:9696/";
-            if (args.Length > 0)
-                url = args[0];
-
-            using (var server = CreateWebServer(url))
+            if (!Directory.Exists("logs"))
             {
-                server.RunAsync();
-                Console.ReadKey(true);
+                Directory.CreateDirectory("logs");
+            }
+
+            var logPath = "logs/application.log";
+            Logger.RegisterLogger(new FileLogger(logPath, true));
+
+            if (mutex.WaitOne(TimeSpan.Zero, true))
+            {
+                var url = "http://localhost:9696/";
+                if (args.Length > 0)
+                    url = args[0];
+
+                FontProgramFactory.RegisterSystemFontDirectories();
+
+                using (var server = CreateWebServer(url))
+                {
+                    server.RunAsync();
+                    Console.ReadKey(true);
+                }
+                mutex.ReleaseMutex(); // Освобождаем при закрытии
             }
         }
 
@@ -42,10 +54,9 @@ namespace DocvTools
         }
     }
 
-    public class SignController : WebApiController
+    internal class SignController : WebApiController
     {
         [Route(HttpVerbs.Post, "/pdf")]
-
         public async Task<List<Document>> Sign()
         {
             var data = await HttpContext.GetRequestDataAsync<Request>();
@@ -55,22 +66,34 @@ namespace DocvTools
                 {
                     for (int i = 0; i < data.Documents.Count; i++)
                     {
-                        if (PdfTools.Stamp(data.Documents[i].ByteArray(), data.Stamps) == 0 && PdfTools.SignedPdf != null)
+                        byte[] doc = Util.Base64ToByteArray(data.Documents[i].base64);
+                        if (doc.Length > 0)
                         {
-                            byte[] signedDoc = PdfTools.SignedPdf;
-                            data.Documents[i].ToBase64String(signedDoc);
+                            PdfTools pt = new PdfTools();
+                            if (pt.Stamp(doc, data.Stamps) == 0 && pt.SignedPdf != null)
+                            {
+                                $"STAMP: {data.Documents[i].name}".Info();
+                                byte[] signedDoc = pt.SignedPdf;
+                                data.Documents[i].base64 = Util.ByteArrayToBase64(signedDoc);
+                            }
                         }
                     }
                 }
 
-                if (data.SignatureParametrs != null) {
+                if (data.SignatureParameters != null) {
 
                     for (int i = 0; i < data.Documents.Count; i++)
                     {
-                        if (PdfTools.Sign(data.Documents[i].ByteArray(), data.SignatureParametrs) == 0 && PdfTools.SignedPdf != null)
+                        byte[] doc = Util.Base64ToByteArray(data.Documents[i].base64);
+                        if (doc.Length > 0)
                         {
-                            byte[] signedDoc = PdfTools.SignedPdf;
-                            data.Documents[i].ToBase64String(signedDoc);
+                            PdfTools pt = new PdfTools();
+                            if (pt.Sign(doc, data.SignatureParameters) == 0 && pt.SignedPdf != null)
+                            {
+                                $"SIGN: {data.Documents[i].name}".Info();
+                                byte[] signedDoc = pt.SignedPdf;
+                                data.Documents[i].base64 = Util.ByteArrayToBase64(signedDoc);
+                            }
                         }
                     }
                 }

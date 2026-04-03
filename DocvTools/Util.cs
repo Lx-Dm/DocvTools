@@ -1,129 +1,36 @@
-﻿using iText.IO.Image;
-using iText.Kernel.Geom;
-using SkiaSharp;
-using Swan.Logging;
-
-namespace DocvTools
+﻿namespace DocvTools
 {
     internal class Util
     {
-        public static ImageData GenerateSignatureImage(string imgPath)
+        public static byte[] Base64ToByteArray(string base64)
         {
-            SKBitmap bitmap;
-
-            if (File.Exists(imgPath))
+            try
             {
-                "Найден шаблон бланка для генерации визуального отображения.".Debug();
-                bitmap = SKBitmap.Decode(imgPath);
+                return Convert.FromBase64String(base64);
             }
-            else
+            catch (FormatException e)
             {
-                "Не найден шаблон бланка для генерации визуального отображения.".Debug();
-                bitmap = GenerateTemplate();
+                Console.WriteLine("Invalid Base64 string: " + e.Message);
+                return [];
             }
-
-            SKData encodedData = bitmap.Encode(SKEncodedImageFormat.Png, 100);
-            return ImageDataFactory.Create(encodedData.ToArray());
         }
 
-        public static ImageData GenerateSignatureImage(string imgPath, string text, string fontName, int fontSize, Offset? offset)
+        public static byte[] StreamToByteArray(Stream sourceStream)
         {
-
-            SKBitmap bitmap;
-
-            if (File.Exists(imgPath))
+            // If the source is already a MemoryStream, we can potentially use ToArray directly for efficiency, 
+            // but CopyTo is more general for all stream types.
+            using (MemoryStream memoryStream = new())
             {
-                "Найден шаблон бланка для генерации визуального отображения.".Debug();
-                bitmap = SKBitmap.Decode(imgPath);
+                // Use CopyTo to transfer data from the source stream to the MemoryStream
+                sourceStream.CopyTo(memoryStream);
+                // Return the byte array from the MemoryStream
+                return memoryStream.ToArray();
             }
-            else
-            {
-                "Не найден шаблон бланка для генерации визуального отображения.".Debug();
-                bitmap = GenerateTemplate();
-            }
-
-
-            using (SKCanvas canvas = new(bitmap))
-            {
-                // 3. Define the text style using an SKPaint object
-                using (SKPaint paint = new())
-                {
-                    paint.Color = SKColors.Black;
-                    paint.IsAntialias = true;
-
-                    var typeface = SKTypeface.FromFamilyName(fontName);
-
-                    // 2. Create the SKFont object with size 24
-                    var font = new SKFont(typeface, fontSize);
-
-                    if (offset == null) offset = new Offset();
-
-                    float x = offset.X; // Initial X position
-                    float y = offset.Y; // Initial Y position
-                                        
-
-                    // Get text height
-                    float lineHeight = font.Spacing;
-
-                    // 3. Draw each line
-                    foreach (string line in text.Split('\n'))
-                    {
-                        canvas.DrawText(line, x, y, SKTextAlign.Left, font, paint);
-                        y += lineHeight; // Move down for the next line
-                    }
-                }
-            }
-
-            SKData encodedData = bitmap.Encode(SKEncodedImageFormat.Png, 100);
-            return ImageDataFactory.Create(encodedData.ToArray());
         }
 
-        private static SKBitmap GenerateTemplate() {
-            SKBitmap bitmap = new SKBitmap(1250, 500);
-
-            using (SKCanvas canvas = new(bitmap))
-            {
-                // 3. Define the text style using an SKPaint object
-                canvas.Clear();
-                using (SKPaint paint = new())
-                {
-                    paint.Color = SKColors.Black;
-                    paint.IsAntialias = true;
-
-                    var typeface = SKTypeface.FromFamilyName("Times New Roman", SKFontStyleWeight.Bold, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright);
-
-                    // 2. Create the SKFont object with size
-                    var font = new SKFont(typeface, 58);
-
-                    float x = bitmap.Width / 2;  // Initial X position
-                    float y = bitmap.Height / 6; // Initial Y position
-                                                 
-                    // 3. Draw each line
-                    canvas.DrawText("ДОКУМЕНТ ПОДПИСАН", x, y, SKTextAlign.Center, font, paint);
-                    canvas.DrawText("ЭЛЕКТРОННОЙ ПОДПИСЬЮ", x, y + font.Spacing, SKTextAlign.Center, font, paint);
-                    canvas.DrawText("СВЕДЕНИЯ О СЕРТИФИКАТЕ ЭП", x, y + font.Spacing * 2.5f, SKTextAlign.Center, font, paint);
-                    
-                    SKRect borderRect = SKRect.Create(8, 8, bitmap.Width-16, bitmap.Height-16);
-                    float cornerRadius = 50;
-
-                    paint.Style = SKPaintStyle.Stroke; // Set to stroke for an outline
-                    paint.StrokeWidth = 12;
-                    canvas.DrawRoundRect(borderRect, cornerRadius, cornerRadius, paint);
-                }
-            }
-
-            return bitmap;
-        }
-
-        public static void CalculateRect(Rectangle sourceRect, float imgRatio, float ratio)
+        public static string ByteArrayToBase64(byte[] bytes)
         {
-            float centerX = sourceRect.GetX() + sourceRect.GetWidth() / 2;
-            float centerY = sourceRect.GetY() + sourceRect.GetHeight() / 2;
-
-            sourceRect.SetWidth(sourceRect.GetWidth() * ratio)
-                      .SetX(centerX - sourceRect.GetWidth() / 2)
-                      .SetHeight(sourceRect.GetWidth() / imgRatio)
-                      .SetY(centerY - sourceRect.GetHeight() / 2);
+            return Convert.ToBase64String(bytes);
         }
 
         public static bool IsByteArrayPdf(byte[] byteArray)

@@ -54,7 +54,7 @@ namespace DocvTools
         }
     }
 
-    public class SignController : WebApiController
+    internal class SignController : WebApiController
     {
         [Route(HttpVerbs.Post, "/pdf")]
         public async Task<List<Document>> Sign()

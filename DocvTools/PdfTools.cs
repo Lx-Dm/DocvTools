@@ -20,11 +20,11 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace DocvTools
 {
-    public class PdfTools
+    internal class PdfTools
     {
         public byte[]? SignedPdf { get; set; }
 
-        public int Sign(byte[] doc, SignatureParameters sp)
+        internal int Sign(byte[] doc, SignatureParameters sp)
         {
             //Проверяем сигнатуру файла на соответствие PDF
             if (!Util.IsByteArrayPdf(doc)) {
@@ -147,7 +147,7 @@ namespace DocvTools
             return 0;
         }
 
-        public int Stamp(byte[] doc, List<Stamp> st) {
+        internal int Stamp(byte[] doc, List<Stamp> st) {
 
             using MemoryStream stream = new(doc);
             using MemoryStream outputStream = new();
@@ -227,7 +227,7 @@ namespace DocvTools
             return 0;
         }
 
-        private static (Rectangle? rect, int page) ExtractLocation(PdfDocument pdfDoc, string searchedString, bool reverseSearch = false)
+        private (Rectangle? rect, int page) ExtractLocation(PdfDocument pdfDoc, string searchedString, bool reverseSearch = false)
         {
             int startPage = 1;
             int numPage = 0;
@@ -254,7 +254,7 @@ namespace DocvTools
             return (strategy.Rect, numPage);
         }
 
-        private static Image GenerateVisualSignature(Rectangle rect, PdfDocument doc, Layout layout) {
+        private Image GenerateVisualSignature(Rectangle rect, PdfDocument doc, Layout layout) {
 
             PdfFormXObject xObject = new(rect);
 
@@ -300,7 +300,7 @@ namespace DocvTools
             return finalImage;
         }
 
-        private static Div PrepareContainer(Image finalImage) {
+        private Div PrepareContainer(Image finalImage) {
             Div wrapper = new Div()
                             .SetMargin(0)
                             .SetPadding(0)
@@ -312,7 +312,7 @@ namespace DocvTools
             return wrapper;
         }
 
-        private static void CheckPatternText(List<LayoutElement> elements, string sn, string owner, string dateFrom, string dateBy) {
+        private void CheckPatternText(List<LayoutElement> elements, string sn, string owner, string dateFrom, string dateBy) {
             foreach (var le in elements)
             {
                 if (le.Text.Contains("{SN}")) le.Text = le.Text.Replace("{SN}", sn);
@@ -322,7 +322,7 @@ namespace DocvTools
             }
         }
 
-        private static void CalculateRect(Rectangle sourceRect, float imgRatio, float scale)
+        private void CalculateRect(Rectangle sourceRect, float imgRatio, float scale)
         {
             float centerX = sourceRect.GetX() + sourceRect.GetWidth() / 2f;
             float centerY = sourceRect.GetY() + sourceRect.GetHeight() / 2f;
@@ -333,7 +333,7 @@ namespace DocvTools
                       .SetY(centerY - sourceRect.GetHeight() / 2f);
         }
         
-        private static PdfFont CreateFont(string familyName)
+        private PdfFont CreateFont(string familyName)
         {
             if (PdfFontFactory.IsRegistered(familyName))
             {

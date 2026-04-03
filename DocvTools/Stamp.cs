@@ -1,9 +1,9 @@
 ﻿namespace DocvTools
 {
-    public class Stamp
+    internal class Stamp
     {
         public Stamp() {
-            FontName  = "Times-Roman";
+            FontName  = "Times New Roman";
             FontSize = 12;
             PageNum = 0;
         }
@@ -16,7 +16,7 @@
         public int PageNum { get; set; }
     }
 
-    public class Area 
+    internal class Area 
     {
         public Area(float x, float y, float width, float height)
         { 
@@ -30,7 +30,7 @@
         public float H { get; set; }
         public float W { get; set; }
     }
-    public class Offset
+    internal class Offset
     {
         public Offset()
         {
@@ -42,7 +42,7 @@
         public int Y { get; set; }
     }
 
-    public class Marker
+    internal class Marker
     {
         public Marker()
         {

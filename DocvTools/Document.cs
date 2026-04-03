@@ -1,6 +1,6 @@
 ﻿namespace DocvTools
 {
-    public class Document
+    internal class Document
     {
         public Document() {
             name = "";

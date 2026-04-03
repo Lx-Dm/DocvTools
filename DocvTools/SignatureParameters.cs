@@ -1,6 +1,6 @@
 ﻿namespace DocvTools
 {
-    public class SignatureParameters
+    internal class SignatureParameters
     {
         public SignatureParameters() {
             Apperance = new SignatureApperance();
@@ -14,7 +14,7 @@
         public SignatureApperance Apperance { get; set; }
     }
 
-    public class SignatureApperance
+    internal class SignatureApperance
     {
         public SignatureApperance() {
             Scale = 1.0f;
@@ -28,7 +28,7 @@
         public int PageNum { get; set; }
         public Layout? Layout { get; set; }
     }
-    public class Layout
+    internal class Layout
     {
         public Layout() {
             Elements = [];
@@ -41,7 +41,7 @@
         public int[] BorderColor { get; set; }
         public List<LayoutElement> Elements { get; set; }
     }
-    public class LayoutElement {
+    internal class LayoutElement {
         public LayoutElement() {
             Type = "";
             Text = "";

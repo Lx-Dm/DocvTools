@@ -17,13 +17,9 @@
 
         public static byte[] StreamToByteArray(Stream sourceStream)
         {
-            // If the source is already a MemoryStream, we can potentially use ToArray directly for efficiency, 
-            // but CopyTo is more general for all stream types.
             using (MemoryStream memoryStream = new())
             {
-                // Use CopyTo to transfer data from the source stream to the MemoryStream
                 sourceStream.CopyTo(memoryStream);
-                // Return the byte array from the MemoryStream
                 return memoryStream.ToArray();
             }
         }
@@ -35,17 +31,11 @@
 
         public static bool IsByteArrayPdf(byte[] byteArray)
         {
-            // PDF файл должен иметь первые 4 байта сигнатуры
             if (byteArray == null || byteArray.Length < 4)
             {
                 return false;
             }
 
-            // Проверка первых 4 байт на соответствие "%PDF"
-            // % = 0x25
-            // P = 0x50
-            // D = 0x44
-            // F = 0x46
             if (byteArray[0] == 0x25 &&
                 byteArray[1] == 0x50 &&
                 byteArray[2] == 0x44 &&

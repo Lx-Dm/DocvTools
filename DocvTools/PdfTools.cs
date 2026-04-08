@@ -24,7 +24,7 @@ namespace DocvTools
 {
     internal class PdfTools
     {
-        public byte[]? SignedPdf { get; set; }
+        public byte[]? OutputPdf { get; set; }
 
         internal int Sign(byte[] doc, SignatureParameters sp)
         {
@@ -141,7 +141,7 @@ namespace DocvTools
 
                 reader.Close();
 
-                SignedPdf = outputStream.ToArray();
+                OutputPdf = outputStream.ToArray();
             };
 
             $"Документ успешно подписан на ключе {certificate.Subject}".Info();
@@ -150,6 +150,12 @@ namespace DocvTools
         }
 
         internal int Stamp(byte[] doc, List<Stamp> st) {
+            //Проверяем сигнатуру файла на соответствие PDF
+            if (!Util.IsByteArrayPdf(doc))
+            {
+                "Файл не является PDF".Info();
+                return 1;
+            }
 
             using MemoryStream stream = new(doc);
             using MemoryStream outputStream = new();
@@ -236,14 +242,13 @@ namespace DocvTools
 
             pdfDoc.Close();
 
-            SignedPdf = outputStream.ToArray();
+            OutputPdf = outputStream.ToArray();
             return 0;
         }
 
         private static List<Area> ExtractLocation(PdfDocument pdfDoc, string searchedString, bool reverseSearch, bool searchAll)
         {
             int startPage = 1;
-            //int numPage = 0;
 
             //Создаем объект стратегии поиска и извлечения координат
             var strategy = new CustomLocationTextExtractionStrategy(searchedString, searchAll);

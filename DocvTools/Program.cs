@@ -70,10 +70,10 @@ namespace DocvTools
                         if (doc.Length > 0)
                         {
                             PdfTools pt = new PdfTools();
-                            if (pt.Stamp(doc, data.Stamps) == 0 && pt.SignedPdf != null)
+                            if (pt.Stamp(doc, data.Stamps) == 0 && pt.OutputPdf != null)
                             {
                                 $"STAMP: {data.Documents[i].name}".Info();
-                                byte[] signedDoc = pt.SignedPdf;
+                                byte[] signedDoc = pt.OutputPdf;
                                 data.Documents[i].base64 = Util.ByteArrayToBase64(signedDoc);
                             }
                         }
@@ -88,10 +88,10 @@ namespace DocvTools
                         if (doc.Length > 0)
                         {
                             PdfTools pt = new PdfTools();
-                            if (pt.Sign(doc, data.SignatureParameters) == 0 && pt.SignedPdf != null)
+                            if (pt.Sign(doc, data.SignatureParameters) == 0 && pt.OutputPdf != null)
                             {
                                 $"SIGN: {data.Documents[i].name}".Info();
-                                byte[] signedDoc = pt.SignedPdf;
+                                byte[] signedDoc = pt.OutputPdf;
                                 data.Documents[i].base64 = Util.ByteArrayToBase64(signedDoc);
                             }
                         }

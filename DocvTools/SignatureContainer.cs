@@ -13,7 +13,6 @@ internal class SignatureContainer : IExternalSignatureContainer
     {
         this._cert = cert;
     }
-
     public virtual byte[] Sign(Stream docStream)
     {
         byte[] docBytes = Util.StreamToByteArray(docStream);
@@ -26,7 +25,6 @@ internal class SignatureContainer : IExternalSignatureContainer
         byte[] pk = signedCms.Encode();
         return pk;
     }
-
     public virtual void ModifySigningDictionary(PdfDictionary signDic)
     {
         signDic.Put(PdfName.Filter, new PdfName("CryptoPro PDF"));

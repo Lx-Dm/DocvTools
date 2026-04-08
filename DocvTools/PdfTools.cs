@@ -17,6 +17,8 @@ using iText.Signatures;
 using Swan.Logging;
 using System.Security;
 using System.Security.Cryptography.X509Certificates;
+//using static System.Net.WebRequestMethods;
+//using static System.Net.Mime.MediaTypeNames;
 
 namespace DocvTools
 {
@@ -78,24 +80,26 @@ namespace DocvTools
                 {
                     Rectangle? rect = null;
                     int pageNumber = 0;
-                    if (sp.Apperance.Area != null && sp.Apperance.PageNum != 0 && Math.Abs(sp.Apperance.PageNum) <= signer.GetDocument().GetNumberOfPages())
+                    if (sp.Apperance.Area != null && sp.Apperance.Area.PageNumber != 0 && Math.Abs(sp.Apperance.Area.PageNumber) <= signer.GetDocument().GetNumberOfPages())
                     {
                         rect = new(sp.Apperance.Area.X, sp.Apperance.Area.Y, sp.Apperance.Area.W, sp.Apperance.Area.H);
-                        if (sp.Apperance.PageNum > 0)
+                        if (sp.Apperance.Area.PageNumber > 0)
                         {
-                            pageNumber = sp.Apperance.PageNum;
+                            pageNumber = sp.Apperance.Area.PageNumber;
                         }
-                        else if (sp.Apperance.PageNum < 0)
+                        else if (sp.Apperance.Area.PageNumber < 0)
                         {
-                            pageNumber = (int)(signer.GetDocument().GetNumberOfPages() + sp.Apperance.PageNum + 1);
+                            pageNumber = (int)(signer.GetDocument().GetNumberOfPages() + sp.Apperance.Area.PageNumber + 1);
                         }
                     }
                     else if (sp.Apperance.Marker != null && sp.Apperance.Marker.Text != null)
                     {
-                        (rect, pageNumber) = ExtractLocation(signer.GetDocument(), sp.Apperance.Marker.Text, sp.Apperance.Marker.ReverseSearch);
-                        if (rect != null) {
-                            rect.SetX(rect.GetX() + sp.Apperance.Marker.Offset.X);
-                            rect.SetY(rect.GetY() + sp.Apperance.Marker.Offset.Y);
+                        List<Area> areas = ExtractLocation(signer.GetDocument(), sp.Apperance.Marker.Text, sp.Apperance.Marker.ReverseSearch, false);
+                        if (areas.Count > 0) {
+                            areas[0].X += sp.Apperance.Marker.Offset.X;
+                            areas[0].Y += sp.Apperance.Marker.Offset.Y;
+                            rect = new Rectangle(areas[0].X, areas[0].Y, areas[0].W, areas[0].H);
+                            pageNumber = areas[0].PageNumber;
                         }
                     }
 
@@ -116,14 +120,12 @@ namespace DocvTools
 
                             CalculateRect(rect, (sp.Apperance.Layout.Width + sp.Apperance.Layout.Height * 0.15f) / (sp.Apperance.Layout.Height + sp.Apperance.Layout.Height * 0.15f), sp.Apperance.Scale);
 
-
                             signer.GetSignerProperties()
                                         .SetPageRect(rect)
                                         .SetPageNumber(pageNumber);
 
                             appearance.SetContent(PrepareContainer(finalImage));
                         }
-                        
                     }
                 }
 
@@ -140,7 +142,7 @@ namespace DocvTools
                 reader.Close();
 
                 SignedPdf = outputStream.ToArray();
-            } ;
+            };
 
             $"Документ успешно подписан на ключе {certificate.Subject}".Info();
 
@@ -165,59 +167,70 @@ namespace DocvTools
                 if (stp.Marker != null && stp.Marker.Text != null)
                 {                    
                     //пробуем получить координаты маркера и номер страницы
-                    (Rectangle? area, int page) = ExtractLocation(pdfDoc, stp.Marker.Text, stp.Marker.ReverseSearch);
+                    List<Area> areas = ExtractLocation(pdfDoc, stp.Marker.Text, stp.Marker.ReverseSearch, stp.Marker.SearchAll);
 
-                    //проверяем координаты маркера и номер страницы
-                    if (area != null)
+                    if (stp.Marker.Offset != null)
                     {
-                        PdfFont font = CreateFont(stp.FontName);
-                        area.SetWidth(font.GetWidth(stp.Text, stp.FontSize));
-
-                        if (stp.Marker.Offset != null) area.SetX(area.GetX() + stp.Marker.Offset.X)
-                                .SetY(area.GetY() + stp.Marker.Offset.Y);
-
-                        stp.Area = new Area(area.GetX(), area.GetY(), area.GetWidth(), area.GetHeight());
-                        stp.PageNum = page;
+                        foreach (var a in areas) {
+                            a.X += stp.Marker.Offset.X;
+                            a.Y += stp.Marker.Offset.Y;
+                        }
                     }
+                    stp.Areas = areas;
                 }
             }
 
             foreach (var stp in st)
             {
-                PdfFont font = CreateFont(stp.FontName);//PdfFontFactory.CreateFont(stp.FontName);
-
                 int pageNumber = 0;
                 Rectangle? stampRect = null;
 
-                //проверяем наличие абсолютного положения
-                if (stp.Area != null && stp.PageNum != 0 && Math.Abs(stp.PageNum) <= pdfDoc.GetNumberOfPages())
-                {
-                    $"Stamp: {stp.Text}".Debug();
-                    stampRect = new(stp.Area.X, stp.Area.Y, stp.Area.W, stp.Area.H);
-
-                    if (stp.PageNum > 0)
+                foreach (var a in stp.Areas) {
+                    //проверяем наличие абсолютного положения
+                    if (a != null && a.PageNumber != 0 && Math.Abs(a.PageNumber) <= pdfDoc.GetNumberOfPages())
                     {
-                        pageNumber = (int)stp.PageNum;
+                        stampRect = new(a.X, a.Y, a.W, a.H);
+
+                        if (a.PageNumber > 0)
+                        {
+                            pageNumber = (int)a.PageNumber;
+                        }
+                        else if (a.PageNumber < 0)
+                        {
+                            pageNumber = (int)(pdfDoc.GetNumberOfPages() + a.PageNumber + 1);
+                        }
                     }
-                    else if (stp.PageNum < 0)
+
+                    if (stampRect != null && pageNumber > 0)
                     {
-                        pageNumber = (int)(pdfDoc.GetNumberOfPages() + stp.PageNum + 1);
+                        PdfPage pageDoc = pdfDoc.GetPage(pageNumber);
+                        Canvas canvas = new(pageDoc, stampRect);
+
+                        if (stp.Type == "text")
+                        {
+                            PdfFont font = CreateFont(stp.FontName);
+                            stampRect.SetWidth(font.GetWidth(stp.Text, stp.FontSize));
+
+                            Paragraph paragraph = new Paragraph(stp.Text)
+                                        .SetFont(font)
+                                        .SetFontSize(stp.FontSize); // Optional: set font size
+
+                            canvas.Add(paragraph);
+                        }
+                        else if (stp.Type == "image")
+                        {
+                            ImageData imgData = ImageDataFactory.Create(Util.Base64ToByteArray(stp.Text));
+                            Image image = new Image(imgData)
+                                            .SetAutoScale(false)
+                                            .SetHorizontalAlignment(HorizontalAlignment.CENTER);
+
+                            CalculateRect(stampRect, image.GetImageWidth() / image.GetImageHeight(), 3);
+                            canvas.Add(image);
+                        }
+
+                        // 6. Close the canvas and document
+                        canvas.Close();
                     }
-                }
-
-                if (stampRect != null && pageNumber > 0)
-                {
-                    PdfPage pageDoc = pdfDoc.GetPage(pageNumber);
-
-                    Paragraph paragraph = new Paragraph(stp.Text)
-                                .SetFont(font)
-                                .SetFontSize(stp.FontSize); // Optional: set font size
-
-                    Canvas canvas = new(pageDoc, stampRect);
-                    canvas.Add(paragraph);
-
-                    // 6. Close the canvas and document
-                    canvas.Close();
                 }
             }
 
@@ -227,34 +240,35 @@ namespace DocvTools
             return 0;
         }
 
-        private (Rectangle? rect, int page) ExtractLocation(PdfDocument pdfDoc, string searchedString, bool reverseSearch = false)
+        private static List<Area> ExtractLocation(PdfDocument pdfDoc, string searchedString, bool reverseSearch, bool searchAll)
         {
             int startPage = 1;
-            int numPage = 0;
+            //int numPage = 0;
 
             //Создаем объект стратегии поиска и извлечения координат
-            var strategy = new CustomLocationTextExtractionStrategy(searchedString);
+            var strategy = new CustomLocationTextExtractionStrategy(searchedString, searchAll);
 
-            while (strategy.Rect == null && startPage <= pdfDoc.GetNumberOfPages())
+            while ((strategy.AreaList.Count == 0 || searchAll) && startPage <= pdfDoc.GetNumberOfPages())
             {
-                numPage = reverseSearch ? (pdfDoc.GetNumberOfPages() - startPage + 1) : startPage;
+                int numPage = reverseSearch ? (pdfDoc.GetNumberOfPages() - startPage + 1) : startPage;
                 var page = pdfDoc.GetPage(numPage);
+                strategy.SetPageNumber(numPage);
                 PdfTextExtractor.GetTextFromPage(page, strategy);
                 startPage++;
             }
 
-            if (strategy.Rect != null)
+            if (strategy.AreaList.Count > 0)
             {
-                $"Marker {searchedString} location:, X: {strategy.Rect.GetX()}, Y: {strategy.Rect.GetY()}, H: {strategy.Rect.GetHeight()}, W: {strategy.Rect.GetWidth()}, Page: {numPage}".Debug();
+                $"Marker {searchedString} Count areas: {strategy.AreaList.Count}".Debug();
             }
             else {
                 $"Marker {searchedString} not found".Debug();
             }
 
-            return (strategy.Rect, numPage);
+            return strategy.AreaList;
         }
 
-        private Image GenerateVisualSignature(Rectangle rect, PdfDocument doc, Layout layout) {
+        private static Image GenerateVisualSignature(Rectangle rect, PdfDocument doc, Layout layout) {
 
             PdfFormXObject xObject = new(rect);
 
@@ -300,7 +314,7 @@ namespace DocvTools
             return finalImage;
         }
 
-        private Div PrepareContainer(Image finalImage) {
+        private static Div PrepareContainer(Image finalImage) {
             Div wrapper = new Div()
                             .SetMargin(0)
                             .SetPadding(0)
@@ -312,7 +326,7 @@ namespace DocvTools
             return wrapper;
         }
 
-        private void CheckPatternText(List<LayoutElement> elements, string sn, string owner, string dateFrom, string dateBy) {
+        private static void CheckPatternText(List<LayoutElement> elements, string sn, string owner, string dateFrom, string dateBy) {
             foreach (var le in elements)
             {
                 if (le.Text.Contains("{SN}")) le.Text = le.Text.Replace("{SN}", sn);
@@ -322,7 +336,7 @@ namespace DocvTools
             }
         }
 
-        private void CalculateRect(Rectangle sourceRect, float imgRatio, float scale)
+        private static void CalculateRect(Rectangle sourceRect, float imgRatio, float scale)
         {
             float centerX = sourceRect.GetX() + sourceRect.GetWidth() / 2f;
             float centerY = sourceRect.GetY() + sourceRect.GetHeight() / 2f;
@@ -332,8 +346,8 @@ namespace DocvTools
                       .SetHeight(sourceRect.GetWidth() / imgRatio)
                       .SetY(centerY - sourceRect.GetHeight() / 2f);
         }
-        
-        private PdfFont CreateFont(string familyName)
+
+        private static PdfFont CreateFont(string familyName)
         {
             if (PdfFontFactory.IsRegistered(familyName))
             {

@@ -6,9 +6,12 @@ using System.Text;
 
 namespace DocvTools
 {
-    public class CustomLocationTextExtractionStrategy(string stringForSearch) : LocationTextExtractionStrategy
+    public class CustomLocationTextExtractionStrategy(string stringForSearch, bool sa) : LocationTextExtractionStrategy
     {
-        public Rectangle? Rect;
+        internal List<Area> AreaList = [];
+        private int CurrentPageNumber = 0;
+        public bool SearchAll = sa;
+        private Rectangle? Rect;
         private readonly StringBuilder strBld = new();
         private readonly string searchedString = stringForSearch;
 
@@ -17,7 +20,6 @@ namespace DocvTools
             if (type == EventType.RENDER_TEXT && strBld.ToString() != searchedString)
             {
                 var renderInfo = (TextRenderInfo)data;
-                // Get detailed info for each character
 
                 for (int i = 0; i < renderInfo.GetCharacterRenderInfos().Count && strBld.ToString() != searchedString; i++) {
                     var t = renderInfo.GetCharacterRenderInfos()[i];
@@ -35,8 +37,11 @@ namespace DocvTools
                         }
                         else
                         {
-                            Rect = new Rectangle(start.Get(0), start.Get(1),
-                            end.Get(0) - start.Get(0), end.Get(1) - start.Get(1));
+                            Rect = new Rectangle(
+                                        start.Get(0),
+                                        start.Get(1),
+                                        end.Get(0) - start.Get(0),
+                                        end.Get(1) - start.Get(1));
                         }
                     }
                     else
@@ -44,8 +49,20 @@ namespace DocvTools
                         strBld.Clear();
                         Rect = null;
                     }
+
+                    if (strBld.ToString() == searchedString && Rect != null) {
+                        AreaList.Add(new Area(Rect.GetX(), Rect.GetY(), Rect.GetWidth(), Rect.GetHeight(), CurrentPageNumber));
+                        if (SearchAll) {
+                            strBld.Clear();
+                            Rect = null;
+                        }
+                    }
                 }
             }
+        }
+
+        public void SetPageNumber(int pn) {
+            CurrentPageNumber = pn;
         }
     }
 }

@@ -19,13 +19,13 @@
         public SignatureApperance() {
             Scale = 1.0f;
             Visible = false;
-            PageNum = 0;
+            //PageNum = 0;
         }
         public bool Visible { get; set; }
         public float Scale { get; set; }
         public Marker? Marker { get; set; }
         public Area? Area { get; set; }
-        public int PageNum { get; set; }
+        //public int PageNum { get; set; }
         public Layout? Layout { get; set; }
     }
     internal class Layout
